@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 text-center">
+        <h1 class="display-1 text-warning fw-bold">500</h1>
+        <h2>Something Went Wrong</h2>
+        <p class="lead">Our server encountered an internal error. Please try again later.</p>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary mt-3">Go Home</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,444 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    /* --- 1. ANIMATED DROPDOWN STYLES --- */
+    .custom-dropdown {
+        position: relative;
+        width: 250px;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .dropdown-btn {
+        background-color: var(--bg-card);
+        color: var(--text-main);
+        border: 2px solid var(--border-color);
+        padding: 12px 20px;
+        border-radius: 50px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+    }
+    .dropdown-btn:hover {
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+    }
+    .dropdown-btn i {
+        transition: transform 0.3s ease;
+        color: var(--primary-color);
+    }
+    .custom-dropdown.active .dropdown-btn i {
+        transform: rotate(180deg);
+    }
+    .dropdown-menu-custom {
+        position: absolute;
+        top: 110%;
+        left: 0;
+        width: 100%;
+        background-color: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        z-index: 1000;
+    }
+    .custom-dropdown.active .dropdown-menu-custom {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    .dropdown-item-custom {
+        padding: 10px 15px;
+        border-radius: 8px;
+        color: var(--text-main);
+        cursor: pointer;
+        font-weight: 500;
+        transition: background 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .dropdown-item-custom:hover {
+        background-color: var(--bg-body);
+        color: var(--primary-color);
+    }
+    .dropdown-item-custom.selected {
+        background-color: var(--primary-color);
+        color: white !important;
+    }
+
+    /* --- 2. UPDATED DATE BADGE (With Year) --- */
+    .date-badge {
+        background-color: var(--bg-body);
+        border: 1px solid var(--border-color);
+        border-radius: 14px; /* Slightly rounder */
+        padding: 6px 10px;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-width: 65px; /* Slightly wider */
+        text-align: center;
+        line-height: 1;
+    }
+    .date-badge .day {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: var(--text-main);
+        margin-bottom: 2px;
+    }
+    .date-badge .month {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: var(--primary-color); /* Highlight month color */
+    }
+    .date-badge .year {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+</style>
+
+<div class="row align-items-center mb-5">
+    <div class="col-md-7">
+        <h1 class="fw-bold mb-1">Overview</h1>
+        <p class="text-muted" style="font-size: 1.1rem;">Hello, {{ username }}! Here is your financial summary.</p>
+    </div>
+    <div class="col-md-5 text-md-end mt-3 mt-md-0">
+    {% if has_categories %}
+        <a href="{{ url_for('add_transaction') }}" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm">
+            <i class="fas fa-plus me-2"></i> Add Transaction
+        </a>
+    {% else %}
+        <a href="{{ url_for('add_category') }}" class="btn btn-warning btn-lg rounded-pill px-4 shadow-sm text-dark fw-bold">
+            <i class="fas fa-layer-group me-2"></i> Create Your First Category
+        </a>
+    {% endif %}
+</div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-4">
+        <div class="card h-100 border-0">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted text-uppercase fw-bold mb-2">Total Income</h6>
+                    <h2 class="fw-bold text-success mb-0" style="font-size: 2.2rem;">₹{{ total_income }}</h2>
+                </div>
+                <div class="bg-success bg-opacity-10 text-success rounded-circle p-4">
+                    <i class="fas fa-arrow-down fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted text-uppercase fw-bold mb-2">Total Expense</h6>
+                    <h2 class="fw-bold text-danger mb-0" style="font-size: 2.2rem;">₹{{ total_expense }}</h2>
+                </div>
+                <div class="bg-danger bg-opacity-10 text-danger rounded-circle p-4">
+                    <i class="fas fa-arrow-up fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 text-white" style="background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-white-50 text-uppercase fw-bold mb-2">Current Balance</h6>
+                    <h2 class="fw-bold mb-0" style="font-size: 2.2rem;">₹{{ balance }}</h2>
+                </div>
+                <div class="bg-white bg-opacity-25 rounded-circle p-4">
+                    <i class="fas fa-wallet fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card border-0">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold mb-0">Analytics</h4>
+                
+                <div class="custom-dropdown" id="graphDropdown">
+                    <div class="dropdown-btn" onclick="toggleDropdown()">
+                        <span id="selectedText">Last 7 Days</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="dropdown-menu-custom">
+                        <div class="dropdown-item-custom selected" onclick="selectOption('7days', 'Last 7 Days')">
+                            <i class="far fa-calendar-alt"></i> Last 7 Days
+                        </div>
+                        <div class="dropdown-item-custom" onclick="selectOption('30days', 'Last 30 Days')">
+                            <i class="far fa-calendar"></i> Last 30 Days
+                        </div>
+                        <div class="dropdown-item-custom" onclick="selectOption('all_categories', 'All Categories')">
+                            <i class="fas fa-layer-group"></i> All Categories
+                        </div>
+                        <div class="dropdown-item-custom" onclick="selectOption('expense_category', 'Expenses Only')">
+                            <i class="fas fa-arrow-up text-danger"></i> Expenses Only
+                        </div>
+                        <div class="dropdown-item-custom" onclick="selectOption('income_category', 'Income Only')">
+                            <i class="fas fa-arrow-down text-success"></i> Income Only
+                        </div>
+                    </div>
+                    <input type="hidden" id="chartSelector" value="7days">
+                </div>
+
+            </div>
+            <div style="height: 400px;">
+                <canvas id="financeChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0">
+            <h4 class="fw-bold mb-4">Recent Transactions</h4>
+            
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Description</th>
+                            <th>Category</th>
+                            <th class="text-center">Date</th>
+                            <th>Amount</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in transactions %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle p-3 me-3 {{ 'bg-success' if t.type == 'Income' else 'bg-danger' }} bg-opacity-10">
+                                        <i class="fas {{ 'fa-arrow-down text-success' if t.type == 'Income' else 'fa-arrow-up text-danger' }}"></i>
+                                    </div>
+                                    <div>
+                                        <span class="d-block fw-bold fs-5">{{ t.title }}</span>
+                                        <small class="text-muted">{{ t.payment_mode }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill fw-normal fs-6 px-3 py-2" style="background-color: var(--bg-body); color: var(--text-main); border: 1px solid var(--border-color);">
+                                    {{ t.category.name if t.category else 'General' }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <div class="date-badge">
+                                    <span class="day">{{ t.date.strftime('%d') }}</span>
+                                    <span class="month">{{ t.date.strftime('%b') }}</span>
+                                    <span class="year">{{ t.date.strftime('%Y') }}</span>
+                                </div>
+                            </td>
+                            <td class="fw-bold fs-5 {{ 'text-success' if t.type == 'Income' else 'text-danger' }}">
+                                {{ '+' if t.type == 'Income' else '-' }} ₹{{ t.amount }}
+                            </td>
+                            <td class="text-end pe-4">
+                                <a href="{{ url_for('edit_transaction', id=t.id) }}" 
+                                   class="btn btn-outline-secondary rounded-circle me-2" 
+                                   style="width: 45px; height: 45px; display: inline-flex; align-items: center; justify-content: center; border-color: var(--border-color);">
+                                    <i class="fas fa-pen fa-lg"></i>
+                                </a>
+                                <button onclick="confirmDelete('{{ url_for('delete_transaction', id=t.id) }}')" 
+                                        class="btn btn-outline-danger rounded-circle"
+                                        style="width: 45px; height: 45px; display: inline-flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-trash fa-lg"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <h5 class="text-muted">No transactions found.</h5>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if pagination.pages > 1 %}
+            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                <p class="text-muted mb-0 small">
+                    Showing page <span class="fw-bold">{{ pagination.page }}</span> of {{ pagination.pages }}
+                </p>
+                
+                <div>
+                    {% if pagination.has_prev %}
+                    <a href="{{ url_for('dashboard', page=pagination.prev_num) }}" class="btn btn-outline-primary rounded-pill px-4 me-2">
+                        <i class="fas fa-arrow-left me-2"></i> Prev
+                    </a>
+                    {% else %}
+                    <button class="btn btn-outline-secondary rounded-pill px-4 me-2" disabled>
+                        <i class="fas fa-arrow-left me-2"></i> Prev
+                    </button>
+                    {% endif %}
+
+                    {% if pagination.has_next %}
+                    <a href="{{ url_for('dashboard', page=pagination.next_num) }}" class="btn btn-primary rounded-pill px-4">
+                        Next <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                    {% else %}
+                    <button class="btn btn-secondary rounded-pill px-4" disabled>
+                        Next <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // --- DROPDOWN LOGIC ---
+    function toggleDropdown() {
+        document.getElementById('graphDropdown').classList.toggle('active');
+    }
+
+    function selectOption(value, text) {
+        document.getElementById('selectedText').innerText = text;
+        document.getElementById('chartSelector').value = value;
+        const items = document.querySelectorAll('.dropdown-item-custom');
+        items.forEach(item => item.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
+        toggleDropdown();
+        updateChart();
+    }
+
+    window.onclick = function(event) {
+        if (!event.target.closest('.custom-dropdown')) {
+            const dropdowns = document.getElementsByClassName("custom-dropdown");
+            for (let i = 0; i < dropdowns.length; i++) {
+                dropdowns[i].classList.remove('active');
+            }
+        }
+    }
+
+    // --- CHART LOGIC ---
+    const dateLabels = {{ date_labels|tojson }} || [];
+    const incomeData = {{ date_income|tojson }} || [];
+    const expenseData = {{ date_expense|tojson }} || [];
+    const expLabels = {{ exp_cat_labels|tojson }} || [];
+    const expValues = {{ exp_cat_values|tojson }} || [];
+    const incLabels = {{ inc_cat_labels|tojson }} || [];
+    const incValues = {{ inc_cat_values|tojson }} || [];
+
+    let myChart = null;
+
+    function getTextColor() {
+        return document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : '#334155';
+    }
+
+    window.updateChartColors = function() {
+        if(myChart) {
+            const color = getTextColor();
+            myChart.options.scales.x.ticks.color = color;
+            myChart.options.scales.y.ticks.color = color;
+            myChart.options.plugins.legend.labels.color = color;
+            myChart.update();
+        }
+    }
+
+    function renderChart(type, labels, datasets) {
+        const ctx = document.getElementById('financeChart').getContext('2d');
+        const textColor = getTextColor();
+
+        if (myChart) myChart.destroy();
+
+        myChart = new Chart(ctx, {
+            type: type,
+            data: { labels: labels, datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        position: 'top',
+                        labels: { color: textColor, font: { size: 14, family: "'Plus Jakarta Sans', sans-serif" } },
+                        display: datasets[0].label !== 'All Categories'
+                    }
+                },
+                scales: type === 'bar' ? {
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#334155' : '#e2e8f0', borderDash: [5, 5] },
+                        ticks: { color: textColor, font: { size: 12 } }
+                    },
+                    x: { grid: { display: false }, ticks: { color: textColor, font: { size: 12 } } }
+                } : { x: { display: false }, y: { display: false } }
+            }
+        });
+    }
+
+    function updateChart() {
+        const selector = document.getElementById('chartSelector');
+        if (!selector) return;
+        const selection = selector.value;
+
+        if (selection === 'all_categories') {
+            const combinedLabels = [...incLabels, ...expLabels];
+            const combinedValues = [...incValues, ...expValues];
+            const bgColors = [...incLabels.map(()=>'#10b981'), ...expLabels.map(()=>'#ef4444')];
+            if (combinedLabels.length === 0) { renderChart('bar', ['No Data'], [{ label: 'No Data', data: [0] }]); return; }
+            renderChart('bar', combinedLabels, [{ label: 'All Categories', data: combinedValues, backgroundColor: bgColors, borderRadius: 8 }]);
+        } 
+        else if (selection === 'expense_category') {
+            renderChart('doughnut', expLabels, [{ label: 'Expense', data: expValues, backgroundColor: ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#22d3ee', '#818cf8'], borderWidth: 0 }]);
+        } 
+        else if (selection === 'income_category') {
+            renderChart('doughnut', incLabels, [{ label: 'Income', data: incValues, backgroundColor: ['#34d399', '#10b981', '#059669', '#047857'], borderWidth: 0 }]);
+        } 
+        else {
+            // 1. Determine the Cutoff Date
+            const daysToSubtract = selection === '7days' ? 7 : 30;
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - daysToSubtract);
+            
+            // 2. Filter the Arrays based on the Date String
+            const filteredDates = [];
+            const filteredIncome = [];
+            const filteredExpense = [];
+
+            for (let i = 0; i < dateLabels.length; i++) {
+                // Parse the label (assuming format YYYY-MM-DD)
+                const currentDataDate = new Date(dateLabels[i]);
+                
+                // If the date is newer than cutoff, keep it
+                if (currentDataDate >= cutoffDate) {
+                    filteredDates.push(dateLabels[i]);
+                    filteredIncome.push(incomeData[i]);
+                    filteredExpense.push(expenseData[i]);
+                }
+            }
+
+            // 3. Render with Filtered Data (FIXED HERE)
+            renderChart('bar', filteredDates, [
+                { label: 'Income', data: filteredIncome, backgroundColor: '#10b981', borderRadius: 6 },
+                { label: 'Expense', data: filteredExpense, backgroundColor: '#ef4444', borderRadius: 6 }
+            ]);
+        }
+    }
+    window.addEventListener('load', updateChart);
+</script>
+{% endblock %}

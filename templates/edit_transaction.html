@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-lg p-4 p-md-5 position-relative overflow-hidden">
+            
+            <h2 class="fw-bold mb-4">Edit Transaction</h2>
+
+            <form method="POST">
+                
+                <div class="mb-4">
+                    <label class="form-label text-uppercase small fw-bold text-muted">Title</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-heading text-primary"></i></span>
+                        <input type="text" name="title" value="{{ transaction.title }}" class="form-control border-start-0 ps-0" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-uppercase small fw-bold text-muted">Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-rupee-sign text-success"></i></span>
+                        <input type="number" step="0.01" name="amount" value="{{ transaction.amount }}" class="form-control border-start-0 ps-0 fw-bold fs-5" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label text-uppercase small fw-bold text-muted">Date</label>
+                        <div class="input-group" id="date-wrapper">
+                            <span class="input-group-text bg-transparent border-end-0" data-toggle style="cursor: pointer;">
+                                <i class="far fa-calendar-alt text-warning"></i>
+                            </span>
+                            <input type="text" name="date" value="{{ transaction.date.strftime('%Y-%m-%d') }}" class="form-control border-start-0 ps-0" data-input required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label text-uppercase small fw-bold text-muted">Type</label>
+                        <select name="type" class="form-select fw-bold" required>
+                            <option value="Expense" {% if transaction.type == 'Expense' %}selected{% endif %}>Expense</option>
+                            <option value="Income" {% if transaction.type == 'Income' %}selected{% endif %}>Income</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-uppercase small fw-bold text-muted">Category</label>
+                    <select name="category_id" class="form-select" required>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if cat.id == transaction.category_id %}selected{% endif %}>{{ cat.name }} ({{ cat.type }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-5">
+                    <label class="form-label text-uppercase small fw-bold text-muted">Payment Mode</label>
+                    <div class="d-flex gap-2">
+                        <input type="radio" class="btn-check" name="payment_mode" id="mode1" value="Online / UPI" {% if transaction.payment_mode == 'Online / UPI' %}checked{% endif %}>
+                        <label class="btn btn-outline-primary flex-fill rounded-pill" for="mode1">
+                            <i class="fas fa-mobile-alt me-1"></i> UPI
+                        </label>
+
+                        <input type="radio" class="btn-check" name="payment_mode" id="mode3" value="Card" {% if transaction.payment_mode == 'Card' %}checked{% endif %}>
+                        <label class="btn btn-outline-warning flex-fill rounded-pill" for="mode3">
+                            <i class="fas fa-credit-card me-1"></i> Card
+                        </label>
+
+                        <input type="radio" class="btn-check" name="payment_mode" id="mode2" value="Cash" {% if transaction.payment_mode == 'Cash' %}checked{% endif %}>
+                        <label class="btn btn-outline-success flex-fill rounded-pill" for="mode2">
+                            <i class="fas fa-money-bill-wave me-1"></i> Cash
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm">
+                        <i class="fas fa-save me-2"></i> Update Transaction
+                    </button>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-danger btn-lg rounded-pill">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    flatpickr("#date-wrapper", {
+        wrap: true,
+        dateFormat: "Y-m-d",
+        maxDate: "today",
+        theme: "dark",
+        disableMobile: "true"
+    });
+</script>
+
+<style>
+    .input-group-text { border-right: none; padding-right: 10px; }
+    .input-group:focus-within .input-group-text,
+    .input-group:focus-within .form-control { border-color: var(--primary-color); }
+</style>
+{% endblock %}

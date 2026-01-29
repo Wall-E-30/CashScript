@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-lg p-4 p-md-5 position-relative overflow-hidden">
+            
+            <div class="position-absolute top-0 end-0 p-3 opacity-10">
+                <i class="fas fa-file-invoice-dollar fa-10x text-primary transform-rotate-12"></i>
+            </div>
+
+            <h2 class="fw-bold mb-4 position-relative">Add Transaction</h2>
+
+            <form method="POST" action="{{ url_for('add_transaction') }}">
+                
+                <div class="mb-4">
+                    <label class="form-label text-uppercase small fw-bold text-muted">Title</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-heading text-primary"></i></span>
+                        <input type="text" name="title" class="form-control border-start-0 ps-0" placeholder="e.g. Hazelnut Coffee" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-uppercase small fw-bold text-muted">Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-rupee-sign text-success"></i></span>
+                        <input type="number" step="1.00" name="amount" class="form-control border-start-0 ps-0 fw-bold fs-5" placeholder="0.00" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label text-uppercase small fw-bold text-muted">Date</label>
+                        <div class="input-group" id="date-wrapper">
+                            <span class="input-group-text bg-transparent border-end-0" data-toggle style="cursor: pointer;">
+                                <i class="far fa-calendar-alt text-warning"></i>
+                            </span>
+                            <input type="text" name="date" class="form-control border-start-0 ps-0" placeholder="Select Date" data-input required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <label class="form-label text-uppercase small fw-bold text-muted">Type</label>
+                        <select name="type" class="form-select fw-bold" required>
+                            <option value="Expense" selected>Expense</option>
+                            <option value="Income">Income</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-uppercase small fw-bold text-muted">Category</label>
+                    <select name="category_id" class="form-select" required>
+                        <option value="" disabled selected>Select a Category...</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }} ({{ cat.type }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-5">
+                    <label class="form-label text-uppercase small fw-bold text-muted">Payment Mode</label>
+                    <div class="d-flex gap-2">
+                        <input type="radio" class="btn-check" name="payment_mode" id="mode1" value="Online / UPI" checked>
+                        <label class="btn btn-outline-primary flex-fill rounded-pill" for="mode1">
+                            <i class="fas fa-mobile-alt me-1"></i> UPI
+                        </label>
+
+                        <input type="radio" class="btn-check" name="payment_mode" id="mode3" value="Card">
+                        <label class="btn btn-outline-warning flex-fill rounded-pill" for="mode3">
+                            <i class="fas fa-credit-card me-1"></i> Card
+                        </label>
+
+                        <input type="radio" class="btn-check" name="payment_mode" id="mode2" value="Cash">
+                        <label class="btn btn-outline-success flex-fill rounded-pill" for="mode2">
+                            <i class="fas fa-money-bill-wave me-1"></i> Cash
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm">
+                        <i class="fas fa-check-circle me-2"></i> Save Transaction
+                    </button>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-danger btn-lg rounded-pill">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize Flatpickr with "wrap: true" allows the icon to trigger the calendar
+    flatpickr("#date-wrapper", {
+        wrap: true,      // Essential for icon click
+        dateFormat: "Y-m-d",
+        defaultDate: "today",
+        maxDate: "today", 
+        theme: "dark",
+        disableMobile: "true"
+    });
+</script>
+
+<style>
+    .input-group-text {
+        border-right: none;
+        padding-right: 10px;
+    }
+    .form-control:focus {
+        box-shadow: none;
+        border-color: var(--primary-color);
+    }
+    .input-group:focus-within .input-group-text,
+    .input-group:focus-within .form-control {
+        border-color: var(--primary-color);
+    }
+    .transform-rotate-12 {
+        transform: rotate(12deg);
+        opacity: 0.05;
+    }
+</style>
+{% endblock %}
