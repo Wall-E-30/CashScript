@@ -247,6 +247,21 @@
         const saved = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', saved);
         document.getElementById('theme-icon').className = saved === 'dark' ? 'fas fa-sun text-warning' : 'fas fa-moon';
+
+        function togglePassword(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove("fa-eye");
+            icon.classList.add("fa-eye-slash"); // Change to "slash" icon
+        } else {
+            input.type = "password";
+            icon.classList.remove("fa-eye-slash");
+            icon.classList.add("fa-eye"); // Change back to normal eye
+        }
+    }
     </script>
 </body>
 </html>
