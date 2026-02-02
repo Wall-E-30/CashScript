@@ -8,11 +8,12 @@ from sqlalchemy.exc import IntegrityError
 from collections import defaultdict
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
+import os
 
 app = Flask(__name__)   #create app instance
 # moment = Moment(app)    #Bind Flask-Moment to the app
 app.config['SECRET_KEY'] = 'mysecretkey'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI') or'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
