@@ -33,6 +33,12 @@ s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+@app.route('/init_db')
+def init_db():
+    with app.app_context():
+        db.create_all()
+    return "Tables successfully created"
+
 @app.route('/')
 def home():
     return redirect(url_for('login'))
