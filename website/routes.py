@@ -88,7 +88,19 @@ def send_async_email(app, msg):
         except Exception as e:
             print(f"Error sending email: {e}")
 
+@main.route('/test-email')
+def test_email():
+    try:
+        msg = Message('Test Email', 
+                      sender=current_app.config['MAIL_USERNAME'], 
+                      recipients=[current_app.config['MAIL_USERNAME']]) # Sending to yourself
+        msg.body = "If you are reading this, the email configuration is perfect."
+        mail.send(msg)
+        return "<h1>Success! Email sent. Check your inbox.</h1>"
+    except Exception as e:
+        return f"<h1>Error: {str(e)}</h1>"
 @main.route('/forgot_password', methods=['GET', 'POST'])
+
 def forgot_password():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
