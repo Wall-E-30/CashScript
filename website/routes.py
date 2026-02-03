@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, flash, current_app, Blueprint
+from flask import Flask, render_template, redirect, url_for, request, flash, current_app, Blueprint, copy_current_request_context
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, timedelta
@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from collections import defaultdict
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
+from threading import Thread
 
 from .extensions import db, mail
 from .models import User, Category, Transaction
@@ -80,6 +81,13 @@ def logout():
     return redirect(url_for('main.login'))
 
 # ------PASSWORD RESET ROUTES---------
+def send_async_email(app, msg):
+    with app.app_context():
+        try:
+            mail.send(msg)
+        except Exception as e:
+            print(f"Error sending email: {e}")
+
 @main.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if current_user.is_authenticated:
@@ -100,14 +108,18 @@ def forgot_password():
             link = url_for('main.reset_password', token=token, _external=True)
             msg.body = f'Click here to reset your password: {link}'
             
-            try:
-                mail.send(msg)
-                flash('Email sent!', 'success')
-            except Exception as e:
-                flash(f'Error sending email: {str(e)}', 'error')
+        #     try:
+        #         mail.send(msg)
+        #         flash('Email sent!', 'success')
+        #     except Exception as e:
+        #         flash(f'Error sending email: {str(e)}', 'error')
+        # else:
+        #     flash('Email sent!', 'success') # Security: don't reveal if email exists
+            Thread(target=send_async_email, args=(current_app._get_current_object(), msg)).start()
+            flash('Email sent! (Check your spam folder)', 'success')
+
         else:
-            flash('Email sent!', 'success') # Security: don't reveal if email exists
-            
+            flash('Email sent!', 'success')
         return redirect(url_for('main.login'))
         
     return render_template('forgot_password.html')
