@@ -96,7 +96,7 @@ def forgot_password():
             # Generate token using the email
             token = s.dumps(email, salt='email-confirm')
             
-            msg = Message('Password Reset Request', sender='noreply@demo.com', recipients=[email])
+            msg = Message('Password Reset Request', sender=current_app.config['MAIL_USERNAME'], recipients=[email])
             link = url_for('main.reset_password', token=token, _external=True)
             msg.body = f'Click here to reset your password: {link}'
             
