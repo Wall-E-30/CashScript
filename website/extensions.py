@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail
 from flask_login import LoginManager
-from __init__ import create_app
+from website.__init__ import create_app
 
 db = SQLAlchemy()
 mail = Mail()
