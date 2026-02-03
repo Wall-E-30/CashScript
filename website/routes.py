@@ -403,13 +403,6 @@ def delete_category(id):
     db.session.commit()
     flash('Category was deleted successfully!!','success')
     return redirect(url_for('main.list_categories'))
-
-from run import app
-
-@main.route('/ne')
-def database():
-    with app.app_context():
-        db.create_all()
 #-------ERRORS HANDLERS---------
 @main.app_errorhandler(404)
 def page_not_found(e):
