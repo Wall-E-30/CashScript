@@ -114,11 +114,11 @@
     </div>
     <div class="col-md-5 text-md-end mt-3 mt-md-0">
     {% if has_categories %}
-        <a href="{{ url_for('add_transaction') }}" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm">
+        <a href="{{ url_for('main.add_transaction') }}" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm">
             <i class="fas fa-plus me-2"></i> Add Transaction
         </a>
     {% else %}
-        <a href="{{ url_for('add_category') }}" class="btn btn-warning btn-lg rounded-pill px-4 shadow-sm text-dark fw-bold">
+        <a href="{{ url_for('main.add_category') }}" class="btn btn-warning btn-lg rounded-pill px-4 shadow-sm text-dark fw-bold">
             <i class="fas fa-layer-group me-2"></i> Create Your First Category
         </a>
     {% endif %}
@@ -252,12 +252,12 @@
                                 {{ '+' if t.type == 'Income' else '-' }} ₹{{ t.amount }}
                             </td>
                             <td class="text-end pe-4">
-                                <a href="{{ url_for('edit_transaction', id=t.id) }}" 
+                                <a href="{{ url_for('main.edit_transaction', id=t.id) }}" 
                                    class="btn btn-outline-secondary rounded-circle me-2" 
                                    style="width: 45px; height: 45px; display: inline-flex; align-items: center; justify-content: center; border-color: var(--border-color);">
                                     <i class="fas fa-pen fa-lg"></i>
                                 </a>
-                                <button onclick="confirmDelete('{{ url_for('delete_transaction', id=t.id) }}')" 
+                                <button onclick="confirmDelete('{{ url_for('main.delete_transaction', id=t.id) }}')" 
                                         class="btn btn-outline-danger rounded-circle"
                                         style="width: 45px; height: 45px; display: inline-flex; align-items: center; justify-content: center;">
                                     <i class="fas fa-trash fa-lg"></i>
@@ -283,7 +283,7 @@
                 
                 <div>
                     {% if pagination.has_prev %}
-                    <a href="{{ url_for('dashboard', page=pagination.prev_num) }}" class="btn btn-outline-primary rounded-pill px-4 me-2">
+                    <a href="{{ url_for('main.dashboard', page=pagination.prev_num) }}" class="btn btn-outline-primary rounded-pill px-4 me-2">
                         <i class="fas fa-arrow-left me-2"></i> Prev
                     </a>
                     {% else %}
@@ -293,7 +293,7 @@
                     {% endif %}
 
                     {% if pagination.has_next %}
-                    <a href="{{ url_for('dashboard', page=pagination.next_num) }}" class="btn btn-primary rounded-pill px-4">
+                    <a href="{{ url_for('main.dashboard', page=pagination.next_num) }}" class="btn btn-primary rounded-pill px-4">
                         Next <i class="fas fa-arrow-right ms-2"></i>
                     </a>
                     {% else %}

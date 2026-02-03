@@ -1,8 +1,12 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime, timezone
+from website.extensions import db, login_manager
 
-db = SQLAlchemy()   #Creating an instance
+# db = SQLAlchemy()   #Creating an instance
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key = True)
@@ -13,7 +17,7 @@ class User(db.Model, UserMixin):
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key = True)
-    name = db.Column(db.String(100), unique = True, nullable = True)
+    name = db.Column(db.String(100), nullable = True)
     type = db.Column(db.String(20), nullable =False)
     description = db.Column(db.String(200))
     transactions = db.relationship('Transaction', backref = 'category', lazy = True)

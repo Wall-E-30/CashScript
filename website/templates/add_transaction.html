@@ -11,7 +11,7 @@
 
             <h2 class="fw-bold mb-4 position-relative">Add Transaction</h2>
 
-            <form method="POST" action="{{ url_for('add_transaction') }}">
+            <form method="POST" action="{{ url_for('main.add_transaction') }}">
                 
                 <div class="mb-4">
                     <label class="form-label text-uppercase small fw-bold text-muted">Title</label>
@@ -83,7 +83,7 @@
                     <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm">
                         <i class="fas fa-check-circle me-2"></i> Save Transaction
                     </button>
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-danger btn-lg rounded-pill">Cancel</a>
+                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-danger btn-lg rounded-pill">Cancel</a>
                 </div>
             </form>
         </div>

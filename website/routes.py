@@ -1,67 +1,54 @@
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, current_app, Blueprint
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, timedelta
-# from flask_moment import Moment
-from models import db, User, Transaction, Category
+from website.models import db, User, Transaction, Category
 from sqlalchemy.exc import IntegrityError
 from collections import defaultdict
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
-import os
 
-app = Flask(__name__)   #create app instance
-# moment = Moment(app)    #Bind Flask-Moment to the app
-app.config['SECRET_KEY'] = 'mysecretkey'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI') or'sqlite:///database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+from .extensions import db, mail
+from .models import User, Category, Transaction
 
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'tilakjaipalgaur31@gmail.com'
-app.config['MAIL_PASSWORD'] = 'avgg wpas cevz odsm'
+main = Blueprint('main', __name__)
 
-db.init_app(app)
-mail = Mail(app)
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
+def get_serializer():
+    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
-s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-@app.route('/')
+#-------ROUTES---------
+@main.route('/')
 def home():
-    return redirect(url_for('login'))
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+    return render_template('home.html')''
+    
 
-@app.route('/register', methods = ['GET', 'POST'])
+
+@main.route('/register', methods = ['GET', 'POST'])
 def register():
 
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
 
     if request.method == 'POST':
         try:
             username = request.form['username']
-            password = generate_password_hash(request.form['password'])
+            input_password = request.form['password']
             email = request.form['email']
 
             user_exists = User.query.filter((User.username == username) | (User.email == email)).first()
             if user_exists:
                 flash('Username or Email already exists!', 'error')
-                return redirect(url_for('register'))
+                return redirect(url_for('main.register'))
             
-            hashed_pw = generate_password_hash(password)
-            new_user = User(username = username, password_hash = password, email = email)
+            hashed_pw = generate_password_hash(input_password)  #Password Hashing
+            new_user = User(username = username, password_hash = hashed_pw, email = email)
             db.session.add(new_user)
             db.session.commit()
 
             flash('You are registered successfully!!', 'success')
-            return redirect(url_for('login'))
+            return redirect(url_for('main.login'))
             
         except IntegrityError:
             db.session.rollback() # Undo the change
@@ -72,10 +59,33 @@ def register():
             
     return render_template('register.html')
 
-@app.route('/forgot_password', methods=['GET', 'POST'])
+@main.route('/login', methods = ['GET' , 'POST'])
+def login():
+    
+    if current_user.is_authenticated:
+        return redirect(url_for('main.dashboard'))
+
+    if request.method == 'POST':
+        user = User.query.filter_by(username = request.form['username']).first()
+
+        if user and check_password_hash(user.password_hash, request.form['password']):
+            login_user(user)
+            return redirect(url_for('main.dashboard'))
+        else:
+            flash('Invalid credentials','error')
+    return render_template('login.html')
+
+@main.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('main.login'))
+
+# ------PASSWORD RESET ROUTES---------
+@main.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
 
     if request.method == 'POST':
         email = request.form['email']
@@ -84,11 +94,12 @@ def forgot_password():
         user = User.query.filter_by(email=email).first()
 
         if user:
+            s = get_serializer() 
             # Generate token using the email
             token = s.dumps(email, salt='email-confirm')
             
             msg = Message('Password Reset Request', sender='noreply@demo.com', recipients=[email])
-            link = url_for('reset_password', token=token, _external=True)
+            link = url_for('main.reset_password', token=token, _external=True)
             msg.body = f'Click here to reset your password: {link}'
             
             try:
@@ -99,21 +110,22 @@ def forgot_password():
         else:
             flash('Email sent!', 'success') # Security: don't reveal if email exists
             
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
         
     return render_template('forgot_password.html')
 
-@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+@main.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
     
+    s = get_serializer()
     try:
         # Decode token to get email back
         email = s.loads(token, salt='email-confirm', max_age=3600)
     except:
         flash('The reset link is invalid or has expired.', 'error')
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
 
     if request.method == 'POST':
         password = request.form['password']
@@ -127,33 +139,18 @@ def reset_password(token):
         db.session.commit()
         
         flash('Your password has been updated! You can now login.', 'success')
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
 
     return render_template('reset_password.html')
 
-@app.route('/login', methods = ['GET' , 'POST'])
-def login():
-    
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-
-    if request.method == 'POST':
-        user = User.query.filter_by(username = request.form['username']).first()
-
-        if user and check_password_hash(user.password_hash, request.form['password']):
-            login_user(user)
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid credentials','error')
-    return render_template('login.html')
-
-@app.route('/dashboard')
+#--------DASHBOARD AND TRANSACTIONS
+@main.route('/dashboard')
 @login_required
 def dashboard():
     # transactions = Transaction.query.filter_by(user_id = current_user.id).order_by(Transaction.date.asc()).all()
-    all_transactions = Transaction.query.filter_by(user_id=current_user.id).order_by(Transaction.date.asc()).all()
-    total_income = sum(t.amount for t in all_transactions if t.type == 'Income')
-    total_expense = sum(t.amount for t in all_transactions if t.type == 'Expense')
+    all_transactions = Transaction.query.filter_by(user_id=current_user.id).order_by(Transaction.date.asc()).all()  
+    total_income = sum(t.amount for t in all_transactions if t.type == 'Income')    #calculates total income
+    total_expense = sum(t.amount for t in all_transactions if t.type == 'Expense')  #calculates total expense
     balance = total_income - total_expense
     
     expense_cat_totals = {}
@@ -189,6 +186,7 @@ def dashboard():
     #         suggestions.append(f"You spent ₹{max_amt} on {max_categories}. Consider reducing")
     #     else:
     #         suggestions.append("You are spending wisely.")
+    #pagination
     page = request.args.get('page', 1, type=int)
     per_page = 7 # Adjust this number to change rows per page
     
@@ -221,14 +219,14 @@ def dashboard():
         #suggestions = suggestions
     )
 
-@app.route('/add', methods = ['GET', 'POST'])
+@main.route('/add', methods = ['GET', 'POST'])
 @login_required
 def add_transaction():
-    categories = Category.query.all()
+    categories = Category.query.filter_by(user_id=current_user.id).all()
     today_str = date.today().strftime('%Y-%m-%d')
     if not categories:
         flash('You must create a category (like "Food" or "Salary") first!', 'info')
-        return redirect(url_for('add_category'))
+        return redirect(url_for('main.add_category'))
     if request.method == 'POST':
         try:
             title = request.form['title']
@@ -243,9 +241,9 @@ def add_transaction():
             payment_mode = request.form['payment_mode']
             tran_type = request.form['type']
 
-            selected_category = Category.query.filter_by(user_id=current_user.id).all()
-            if selected_category and selected_category.type != tran_type:
-                flash(f"Error: You cannot select an '{selected_category.type}' category for an '{tran_type}' transaction!", 'error')
+            selected_cat_obj = Category.query.get(category_id)
+            if selected_cat_obj and selected_cat_obj.type != tran_type:
+                flash(f"Error: You cannot select an '{selected_cat_obj.type}' category for an '{tran_type}' transaction!", 'error')
                 return render_template('add_transaction.html', categories=categories, today=today_str)
 
             new_tran = Transaction(
@@ -261,7 +259,7 @@ def add_transaction():
             db.session.add(new_tran)
             db.session.commit()
             flash('Transaction added!!', 'success')
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('main.dashboard'))
             
         except ValueError:
             flash('Invalid input! Please check amount or date.', 'error')
@@ -271,51 +269,52 @@ def add_transaction():
     
     return render_template('add_transaction.html', categories = categories)
 
-@app.route('/edit/<int:id>', methods=['GET', 'POST'])
+@main.route('/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_transaction(id):
 
     transaction = Transaction.query.get_or_404(id)
-    categories = Category.query.all()
+    categories = Category.query.filter_by(user_id=current_user.id).all()
     today_str = date.today().strftime('%Y-%m-%d')
     
+    #unauthorized users can't edit
     if transaction.user_id != current_user.id:
         flash('Unauthorized Access!!!', 'error')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
     
     if request.method == 'POST':
         try:
-            title = request.form['title']
-            amount = float(request.form['amount'])
-            payment_mode = request.form['payment_mode']
-            trans_type = request.form['type']
-            category_id = request.form['category_id']
+            transaction.title = request.form['title']
+            transaction.amount = float(request.form['amount'])
+            transaction.payment_mode = request.form['payment_mode']
+            transaction.trans_type = request.form['type']
+            transaction.category_id = request.form['category_id']
             
             new_date = datetime.strptime(request.form['date'], '%Y-%m-%d')
 
             if new_date.date() > date.today():
                 flash('You cannot select a future date!', 'error')
                 return redirect(request.url)
-            
-            selected_category = Category.query.filter_by(user_id=current_user.id).all()
-            if selected_category and selected_category.type != trans_type:
-                flash(f"Mismatch: Category '{selected_category.name}' is for {selected_category.type}, but you selected {trans_type}.", 'error')
-                return redirect(request.url)
-            
-            transaction.title = title
-            transaction.amount = amount
             transaction.date = new_date
-            transaction.payment_mode = payment_mode
-            transaction.type = trans_type
-            transaction.category_id = category_id
+            # selected_category = Category.query.filter_by(user_id=current_user.id).all()
+            # if selected_category and selected_category.type != trans_type:
+            #     flash(f"Mismatch: Category '{selected_category.name}' is for {selected_category.type}, but you selected {trans_type}.", 'error')
+            #     return redirect(request.url)
+            
+            # transaction.title = title
+            # transaction.amount = amount
+            # transaction.date = new_date
+            # transaction.payment_mode = payment_mode
+            # transaction.type = trans_type
+            # transaction.category_id = category_id
             
             db.session.commit()
             flash('Transaction updated successfully!', 'success')
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('main.dashboard'))
 
-        except ValueError:
-            flash('Invalid input! Please check the amount.', 'error')
-            return redirect(request.url)
+        # except ValueError:
+        #     flash('Invalid input! Please check the amount.', 'error')
+        #     return redirect(request.url)
             
         except Exception as e:
             db.session.rollback() 
@@ -324,14 +323,14 @@ def edit_transaction(id):
     
     return render_template('edit_transaction.html', transaction=transaction, categories=categories, today=today_str)
 
-@app.route('/delete/<int:id>')
+@main.route('/delete/<int:id>')
 @login_required
 def delete_transaction(id):
     transaction = Transaction.query.get_or_404(id)
     
     if transaction.user_id != current_user.id:
         flash('Unauthorised Access!!!','error')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
     
     try:
         db.session.delete(transaction)
@@ -341,16 +340,16 @@ def delete_transaction(id):
         db.session.rollback()
         flash('Error deleting transaction.', 'error')
 
-    return redirect (url_for('dashboard'))
+    return redirect (url_for('main.dashboard'))
 
 # Categories CRUD
-@app.route('/categories')
+@main.route('/categories')
 @login_required
 def list_categories():
     categories = Category.query.filter_by(user_id=current_user.id).all()
     return render_template('categories.html', categories = categories)
 
-@app.route('/categories/add', methods = ['GET','POST'])
+@main.route('/categories/add', methods = ['GET','POST'])
 @login_required
 def add_category():
     if request.method == 'POST':
@@ -358,62 +357,67 @@ def add_category():
         description = request.form['description']
         cat_type = request.form['type']
 
-        if Category.query.filter_by(name = name).first():
+        existing = Category.query.filter_by(name=name, user_id=current_user.id).first()
+        if existing:
             flash('Category already exists!!','error')
         else:
             new_cat = Category(name=name, description=description, type=cat_type, user_id = current_user.id)
             db.session.add(new_cat)
             db.session.commit()
             flash('Category added!', 'success')
-            return redirect(url_for('list_categories'))
+            return redirect(url_for('main.list_categories'))
     return render_template('add_category.html')
 
-@app.route('/categories/edit/<int:id>', methods = ['GET', 'POST'])
+@main.route('/categories/edit/<int:id>', methods = ['GET', 'POST'])
 @login_required
 def edit_category(id):
     category = Category.query.get_or_404(id)
+
+    if category.user_id != current_user.id:
+        flash('Unauthorized Access!', 'error')
+        return redirect(url_for('main.list_categories'))
+
     if request.method == 'POST':
         category.name = request.form['name']
         category.description = request.form['description']
         category.type = request.form['type']
         db.session.commit()
         flash('Category was updated successfully!!','success')
-        return redirect(url_for('list_categories'))
+        return redirect(url_for('main.list_categories'))
     return render_template('edit_category.html',category = category)
 
-@app.route('/categories/delete/<int:id>')
+@main.route('/categories/delete/<int:id>')
 @login_required
 def delete_category(id):
     category = Category.query.get_or_404(id)
 
+    if category.user_id != current_user.id:
+        flash('Unauthorized Access!', 'error')
+        return redirect(url_for('main.list_categories'))
+    
     associated_transactions = Transaction.query.filter_by(category_id=id).first()
     
     if associated_transactions:
         flash(f"Cannot delete '{category.name}' because it is assigned to existing transactions.", "error")
-        return redirect(url_for('list_categories'))
+        return redirect(url_for('main.list_categories'))
     
     db.session.delete(category)
     db.session.commit()
     flash('Category was deleted successfully!!','success')
-    return redirect(url_for('list_categories'))
+    return redirect(url_for('main.list_categories'))
 
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
+from run import app
 
-@app.errorhandler(404)
+@main.route('/ne')
+def database():
+    with app.app_context():
+        db.create_all()
+#-------ERRORS HANDLERS---------
+@main.app_errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
 
-@app.errorhandler(500)
+@main.app_errorhandler(500)
 def internal_server_error(e):
     return render_template('500.html'), 500
-
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
-
 
