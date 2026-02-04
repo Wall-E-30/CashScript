@@ -2,7 +2,7 @@
 
 > **Master Your Finances.** The smartest way to track income, visualize expenses, and take full control of your financial future.
 
-![Project Banner](website/static/images/dashboard.png) 
+![Project Banner](website/static/images/home.png) 
 
 ## 📖 About The Project
 
