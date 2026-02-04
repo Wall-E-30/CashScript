@@ -2,7 +2,7 @@
 
 > **Master Your Finances.** The smartest way to track income, visualize expenses, and take full control of your financial future.
 
-![Project Banner](website/static/images/dashboard.png) 
+![Project Banner](website/static/images/homepage.png) 
 
 ## 📖 About The Project
 
@@ -115,8 +115,8 @@ Contributions are welcome! If you have suggestions for improvements or new featu
 ## 👤 Author
 
 **Tilak**
-* GitHub: [@your-github-username](https://github.com/your-github-username)
-* LinkedIn: [Your Profile](https://linkedin.com/in/your-profile)
+* GitHub: [Wall-E-30](https://github.com/Wall-E-30)
+* LinkedIn: [Tilak Gaur](https://www.linkedin.com/in/tilak-gaur-bb6204361/)
 
 ---
 
