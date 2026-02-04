@@ -99,8 +99,8 @@ def test_email():
         return "<h1>Success! Email sent. Check your inbox.</h1>"
     except Exception as e:
         return f"<h1>Error: {str(e)}</h1>"
+    
 @main.route('/forgot_password', methods=['GET', 'POST'])
-
 def forgot_password():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
@@ -164,7 +164,46 @@ def reset_password(token):
         return redirect(url_for('main.login'))
 
     return render_template('reset_password.html')
+import os
 
+@main.route('/debug-mail')
+def debug_mail():
+    # 1. Check if variables are loaded
+    server = current_app.config.get('MAIL_SERVER')
+    port = current_app.config.get('MAIL_PORT')
+    username = current_app.config.get('MAIL_USERNAME')
+    
+    # Mask the password/key for safety
+    password = current_app.config.get('MAIL_PASSWORD')
+    masked_pw = f"{password[:3]}...{password[-3:]}" if password else "None"
+    
+    # 2. Check if we are in "Testing" mode (which blocks email)
+    is_testing = current_app.config.get('TESTING')
+    is_suppressed = current_app.config.get('MAIL_SUPPRESS_SEND')
+
+    debug_info = f"""
+    <h2>Debug Info:</h2>
+    <ul>
+        <li><strong>Server:</strong> {server} (Should be smtp-relay.brevo.com)</li>
+        <li><strong>Port:</strong> {port} (Should be 465 or 587)</li>
+        <li><strong>Username:</strong> {username}</li>
+        <li><strong>Password Detected:</strong> {masked_pw}</li>
+        <li><strong>TESTING Mode:</strong> {is_testing} (MUST be False/None)</li>
+        <li><strong>Suppress Send:</strong> {is_suppressed} (MUST be False/None)</li>
+    </ul>
+    """
+    
+    # 3. Try to send
+    try:
+        msg = Message('Debug Email', 
+                      sender=username, 
+                      recipients=[username])
+        msg.body = "Debug test."
+        mail.send(msg)
+        return debug_info + "<h2 style='color:green'>Mail.send() executed successfully!</h2>"
+    except Exception as e:
+        return debug_info + f"<h2 style='color:red'>Error Traceback: {str(e)}</h2>"
+    
 #--------DASHBOARD AND TRANSACTIONS
 @main.route('/dashboard')
 @login_required
