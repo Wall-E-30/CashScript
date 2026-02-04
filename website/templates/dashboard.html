@@ -105,6 +105,18 @@
         color: var(--text-muted);
         margin-top: 2px;
     }
+    /* --- 3. RESPONSIVE CHART CONTAINER --- */
+    .chart-wrapper {
+        position: relative;
+        height: 400px; /* Default height for Laptop/PC */
+        width: 100%;
+    }
+
+    @media (max-width: 768px) {
+        .chart-wrapper {
+            height: 250px; /* Smaller height for Mobile phones */
+        }
+    }
 </style>
 
 <div class="row align-items-center mb-5">
@@ -199,7 +211,7 @@
                 </div>
 
             </div>
-            <div style="height: 400px;">
+            <div class="chart-wrapper">
                 <canvas id="financeChart"></canvas>
             </div>
         </div>

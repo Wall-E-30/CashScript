@@ -1,51 +1,45 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
-<div class="container text-center py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <h1 class="display-4 fw-bold mb-3">Master Your Finances with <span class="text-primary">CashScript</span></h1>
-            <p class="lead text-muted mb-4">
-                The smartest way to track your income, visualize your expenses, and take full control of your financial future.
-                Simple, secure, and insightful.
-            </p>
-            <div class="d-flex justify-content-center gap-3">
-                <a href="{{ url_for('main.register') }}" class="btn btn-primary btn-lg rounded-pill px-4 shadow-sm">Get Started</a>
-                <a href="{{ url_for('main.login') }}" class="btn btn-outline-secondary btn-lg rounded-pill px-4">Login</a>
-            </div>
-        </div>
-    </div>
+<div class="jumbotron text-center bg-light p-5 rounded">
+    <h1 class="display-4">Welcome to CashScript!</h1>
+    <p class="lead">Track your income and expenses effortlessly.</p>
+    <hr class="my-4">
+    <p>Manage your personal finances, visualize your spending, and stay on budget.</p>
+    
+    {% if current_user.is_authenticated %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('main.dashboard') }}" role="button">Go to Dashboard</a>
+    {% else %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('main.register') }}" role="button">Get Started</a>
+        <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('main.login') }}" role="button">Login</a>
+    {% endif %}
 </div>
 
-<div class="container py-5">
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm text-center p-4">
-                <div class="mb-3">
-                    <i class="fas fa-chart-pie text-primary fa-3x"></i>
+<div class="container mt-5">
+    <h2 class="text-center mb-4">How to Start 🚀</h2>
+    <div class="row text-center">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title">1. Create Categories</h3>
+                    <p class="card-text">Go to the <strong>Categories</strong> page and add your custom tags like "Food", "Salary", or "Travel".</p>
                 </div>
-                <h4 class="fw-bold">Visual Insights</h4>
-                <p class="text-muted">See exactly where your money goes with interactive charts and real-time data visualization.</p>
             </div>
         </div>
-        
-        <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm text-center p-4">
-                <div class="mb-3">
-                    <i class="fas fa-wallet text-success fa-3x"></i>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title">2. Add Transactions</h3>
+                    <p class="card-text">Click <strong>Add Transaction</strong>. Select a category, enter the amount, and choose a date.</p>
                 </div>
-                <h4 class="fw-bold">Expense Tracking</h4>
-                <p class="text-muted">Effortlessly log daily transactions and categorize them to keep your budget on track.</p>
             </div>
         </div>
-
-        <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm text-center p-4">
-                <div class="mb-3">
-                    <i class="fas fa-shield-alt text-warning fa-3x"></i>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title">3. View Insights</h3>
+                    <p class="card-text">Check your <strong>Dashboard</strong> to see beautiful graphs showing exactly where your money goes.</p>
                 </div>
-                <h4 class="fw-bold">Secure & Private</h4>
-                <p class="text-muted">Your financial data is yours alone. We use industry-standard security to keep it safe.</p>
             </div>
         </div>
     </div>
