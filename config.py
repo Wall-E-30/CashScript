@@ -13,7 +13,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = uri or 'sqlite:///database.db'
 # Mail settings
     MAIL_SERVER = 'smtp-relay.brevo.com'
-    MAIL_PORT = 587
+    MAIL_PORT = 2525
     MAIL_USE_TLS = True
     MAIL_USE_SSL = False
 
