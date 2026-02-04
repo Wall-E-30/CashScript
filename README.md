@@ -2,7 +2,7 @@
 
 > **Master Your Finances.** The smartest way to track income, visualize expenses, and take full control of your financial future.
 
-![Project Banner](website\static\images\dashboard.png) 
+![Project Banner](website/static/images/dashboard.png) 
 
 ## 📖 About The Project
 
@@ -97,7 +97,7 @@ Follow these instructions to set up the project locally on your machine.
 
 | Dashboard | Add Transaction |
 |:---:|:---:|
-| ![Dashboard](website\static\images\dashboard.png) | ![Add Transaction](website\static\images\add_transaction.png) |
+| ![Dashboard](website/static/images/dashboard.png) | ![Add Transaction](website/static/images/add_transaction.png) |
 
 ---
 
