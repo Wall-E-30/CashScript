@@ -44,7 +44,7 @@ Follow these instructions to set up the project locally on your machine.
 
 1.  **Clone the repository**
     ```bash
-    git clone [https://github.com/your-username/CashScript.git](https://github.com/your-username/CashScript.git)
+    git clone [https://github.com/Wall-E-30/CashScript](https://github.com/Wall-E-30/CashScript)
     cd CashScript
     ```
 
