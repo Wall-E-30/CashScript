@@ -11,13 +11,41 @@
 
             <h2 class="fw-bold mb-4 position-relative">Add Transaction</h2>
 
+            <!-- OCR Scanner Section -->
+            <div class="mb-4">
+                <input type="file" id="receiptFile" accept="image/*" capture="environment" class="d-none">
+                
+                <button type="button" id="scanBtn" class="btn btn-outline-primary w-100 py-3 rounded-4 d-flex align-items-center justify-content-center gap-2 border-2 border-dashed shadow-sm transition-all" onclick="document.getElementById('receiptFile').click()">
+                    <i class="fas fa-camera fa-lg"></i>
+                    <span id="scanBtnText" class="fw-bold">Scan Receipt / Bill (Auto-fill)</span>
+                </button>
+
+                <!-- Loading State & Status Alerts -->
+                <div id="scanLoading" class="p-3 text-center rounded-4 mt-2 d-none" style="background: rgba(67, 97, 238, 0.08); border: 1px dashed var(--primary-color);">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="fw-semibold text-primary">Scanning receipt with OCR... please wait</span>
+                </div>
+
+                <div id="scanAlert" class="alert alert-dismissible fade show mt-2 d-none" role="alert">
+                    <span id="scanAlertMsg"></span>
+                    <button type="button" class="btn-close" onclick="document.getElementById('scanAlert').classList.add('d-none')"></button>
+                </div>
+            </div>
+
+            <div class="position-relative text-center my-4">
+                <hr class="text-muted opacity-25">
+                <span class="position-absolute top-50 start-50 translate-middle px-3 text-muted small fw-bold bg-card-pill">OR ENTER MANUALLY</span>
+            </div>
+
             <form method="POST" action="{{ url_for('main.add_transaction') }}">
                 
                 <div class="mb-4">
                     <label class="form-label text-uppercase small fw-bold text-muted">Title</label>
                     <div class="input-group">
                         <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-heading text-primary"></i></span>
-                        <input type="text" name="title" class="form-control border-start-0 ps-0" placeholder="e.g. Hazelnut Coffee" required>
+                        <input type="text" name="title" id="title" class="form-control border-start-0 ps-0" placeholder="e.g. Hazelnut Coffee" required>
                     </div>
                 </div>
 
@@ -25,7 +53,7 @@
                     <label class="form-label text-uppercase small fw-bold text-muted">Amount</label>
                     <div class="input-group">
                         <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-rupee-sign text-success"></i></span>
-                        <input type="number" step="1.00" name="amount" class="form-control border-start-0 ps-0 fw-bold fs-5" placeholder="0.00" required>
+                        <input type="number" step="any" name="amount" id="amount" class="form-control border-start-0 ps-0 fw-bold fs-5" placeholder="0.00" required>
                     </div>
                 </div>
 
@@ -36,7 +64,7 @@
                             <span class="input-group-text bg-transparent border-end-0" data-toggle style="cursor: pointer;">
                                 <i class="far fa-calendar-alt text-warning"></i>
                             </span>
-                            <input type="text" name="date" class="form-control border-start-0 ps-0" placeholder="Select Date" data-input required>
+                            <input type="text" name="date" id="date" class="form-control border-start-0 ps-0" placeholder="Select Date" data-input required>
                         </div>
                     </div>
 
@@ -92,7 +120,7 @@
 
 <script>
     // Initialize Flatpickr with "wrap: true" allows the icon to trigger the calendar
-    flatpickr("#date-wrapper", {
+    const fp = flatpickr("#date-wrapper", {
         wrap: true,      // Essential for icon click
         dateFormat: "Y-m-d",
         defaultDate: "today",
@@ -100,9 +128,110 @@
         theme: "dark",
         disableMobile: "true"
     });
+
+    // Receipt Scanner Vanilla JS
+    const receiptFileInput = document.getElementById('receiptFile');
+    const scanBtn = document.getElementById('scanBtn');
+    const scanBtnText = document.getElementById('scanBtnText');
+    const scanLoading = document.getElementById('scanLoading');
+    const scanAlert = document.getElementById('scanAlert');
+    const scanAlertMsg = document.getElementById('scanAlertMsg');
+    const amountInput = document.getElementById('amount');
+    const dateInput = document.getElementById('date');
+
+    function showAlert(msg, isSuccess = false) {
+        scanAlert.className = `alert alert-${isSuccess ? 'success' : 'warning'} alert-dismissible fade show mt-2`;
+        scanAlertMsg.textContent = msg;
+        scanAlert.classList.remove('d-none');
+    }
+
+    receiptFileInput.addEventListener('change', async function() {
+        if (!this.files || this.files.length === 0) return;
+
+        const file = this.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // UI Loading State
+        scanBtn.classList.add('disabled');
+        scanBtnText.textContent = 'Scanning Receipt...';
+        scanLoading.classList.remove('d-none');
+        scanAlert.classList.add('d-none');
+
+        try {
+            const response = await fetch("{{ url_for('main.scan_bill') }}", {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                let populatedFields = [];
+
+                // Populate Amount if found
+                if (result.data && result.data.amount !== null && result.data.amount !== undefined) {
+                    amountInput.value = result.data.amount;
+                    amountInput.classList.add('is-valid');
+                    populatedFields.push(`Amount: ₹${result.data.amount}`);
+                }
+
+                // Populate Date if found
+                if (result.data && result.data.date) {
+                    dateInput.value = result.data.date;
+                    if (fp) {
+                        fp.setDate(result.data.date, true);
+                    }
+                    dateInput.classList.add('is-valid');
+                    populatedFields.push(`Date: ${result.data.date}`);
+                }
+
+                if (populatedFields.length > 0) {
+                    const message = `Auto-filled ${populatedFields.join(' and ')} from receipt!`;
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'success',
+                            title: message,
+                            showConfirmButton: false,
+                            timer: 3500,
+                            background: 'var(--bg-card)',
+                            color: 'var(--text-main)'
+                        });
+                    } else {
+                        showAlert(message, true);
+                    }
+                } else {
+                    showAlert('Receipt scanned, but could not detect a clear amount or date. Please enter them manually.');
+                }
+            } else {
+                const errorMsg = result.error || 'Unable to parse receipt. Please enter details manually.';
+                showAlert(errorMsg, false);
+            }
+        } catch (err) {
+            showAlert('Error uploading or analyzing receipt. Please verify your connection or enter manually.', false);
+        } finally {
+            // Restore UI State & reset file input
+            scanBtn.classList.remove('disabled');
+            scanBtnText.textContent = 'Scan Receipt / Bill (Auto-fill)';
+            scanLoading.classList.add('d-none');
+            receiptFileInput.value = '';
+        }
+    });
 </script>
 
 <style>
+    .border-dashed {
+        border-style: dashed !important;
+    }
+    .bg-card-pill {
+        background-color: var(--bg-card);
+        color: var(--text-muted);
+    }
+    .transition-all {
+        transition: all 0.2s ease-in-out;
+    }
     .input-group-text {
         border-right: none;
         padding-right: 10px;
