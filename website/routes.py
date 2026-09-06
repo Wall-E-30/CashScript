@@ -11,7 +11,7 @@ from threading import Thread
 
 from .extensions import db, mail
 from .models import User, Category, Transaction
-from .ocr_utils import extract_text_from_image
+from .ocr_utils import extract_text_from_image, parse_receipt_data
 
 main = Blueprint('main', __name__)
 
@@ -419,7 +419,7 @@ def delete_category(id):
 
 #-------BILL SCANNER (OCR) ROUTE---------
 @main.route('/api/scan-bill', methods=['POST'])
-@login_required
+#@login_required
 def scan_bill():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part in request'}), 400
@@ -430,9 +430,14 @@ def scan_bill():
 
     try:
         raw_text = extract_text_from_image(file.stream)
+        parsed_data = parse_receipt_data(raw_text)
         return jsonify({
             'success': True,
-            'text': raw_text
+            'data': {
+                'amount': parsed_data['amount'],
+                'date': parsed_data['date']
+            },
+            'raw_text': raw_text
         }), 200
     except Exception as e:
         return jsonify({
