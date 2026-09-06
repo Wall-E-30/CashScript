@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, flash, current_app, Blueprint, copy_current_request_context
+from flask import Flask, render_template, redirect, url_for, request, flash, current_app, Blueprint, copy_current_request_context, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, timedelta
@@ -11,6 +11,7 @@ from threading import Thread
 
 from .extensions import db, mail
 from .models import User, Category, Transaction
+from .ocr_utils import extract_text_from_image
 
 main = Blueprint('main', __name__)
 
@@ -415,6 +416,29 @@ def delete_category(id):
     db.session.commit()
     flash('Category was deleted successfully!!','success')
     return redirect(url_for('main.list_categories'))
+
+#-------BILL SCANNER (OCR) ROUTE---------
+@main.route('/api/scan-bill', methods=['POST'])
+@login_required
+def scan_bill():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part in request'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected for upload'}), 400
+
+    try:
+        raw_text = extract_text_from_image(file.stream)
+        return jsonify({
+            'success': True,
+            'text': raw_text
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'error': f'Failed to process image: {str(e)}'
+        }), 500
+
 #-------ERRORS HANDLERS---------
 @main.app_errorhandler(404)
 def page_not_found(e):
