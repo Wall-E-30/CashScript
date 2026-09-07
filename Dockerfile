@@ -1,16 +1,11 @@
-# Use official Python runtime
-FROM python:3.10-slim
+# Use the full Python 3.10 image (no 'slim' tag) for guaranteed apt-get stability
+FROM python:3.10
 
-# Prevent Linux from pausing to ask for user input during installs
+# Prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update package lists and install Tesseract safely
-RUN apt-get update -y && apt-get install -y --no-install-recommends \
-    tesseract-ocr \
-    tesseract-ocr-eng \
-    libgl1-mesa-glx \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Update and install only the exact Tesseract packages needed
+RUN apt-get update && apt-get install -y tesseract-ocr tesseract-ocr-eng
 
 # Set the working directory
 WORKDIR /app
@@ -21,7 +16,7 @@ COPY . /app
 # Install Python packages
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Render uses port 10000 by default
+# Expose Render's default port
 EXPOSE 10000
 
 # Run the app using Gunicorn
