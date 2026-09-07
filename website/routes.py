@@ -419,7 +419,7 @@ def delete_category(id):
 
 #-------BILL SCANNER (OCR) ROUTE---------
 @main.route('/api/scan-bill', methods=['POST'])
-#@login_required
+@login_required
 def scan_bill():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part in request'}), 400
