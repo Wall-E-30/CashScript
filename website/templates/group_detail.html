@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ group.name }} - CashScript{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Breadcrumb & Header -->
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.groups') }}">My Groups</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ group.name }}</li>
+      </ol>
+    </nav>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>{{ group.name }}</h2>
+            <p class="text-muted mb-0">{{ group.description }}</p>
+        </div>
+        <!-- We will build the route for this button next -->
+        <button class="btn btn-success" disabled>+ Add Expense (Coming Soon)</button>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Debts & Expenses -->
+        <div class="col-md-8">
+            <!-- Simplified Debts Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">How to Settle Up</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% if debts %}
+                        {% for debt in debts %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><strong>{{ debt.from_user }}</strong> owes <strong>{{ debt.to_user }}</strong></span>
+                            <span class="badge bg-danger rounded-pill fs-6">₹{{ "%.2f"|format(debt.amount) }}</span>
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="list-group-item text-muted text-center py-4">All settled up! No active debts.</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <!-- Recent Expenses Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Recent Expenses</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% if expenses %}
+                        {% for expense in expenses %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">{{ expense.title }}</h6>
+                                    <small class="text-muted">{{ expense.date.strftime('%b %d, %Y') }}</small>
+                                </div>
+                                <span class="fw-bold fs-5">₹{{ "%.2f"|format(expense.amount) }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="list-group-item text-muted text-center py-4">No expenses added yet.</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Column: Members -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Members</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for member in members %}
+                    <li class="list-group-item">
+                        <i class="bi bi-person-circle text-secondary me-2"></i> {{ member.user.username }}
+                        {% if member.role == 'admin' %}
+                        <span class="badge bg-primary float-end">Admin</span>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="card-body bg-light">
+                    <form action="{{ url_for('main.add_group_member', group_id=group.id) }}" method="POST" class="d-flex">
+                        <input type="email" name="email" class="form-control me-2" placeholder="User's email" required>
+                        <button type="submit" class="btn btn-outline-primary">Add</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
