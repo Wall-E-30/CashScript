@@ -17,7 +17,7 @@
             <p class="text-muted mb-0">{{ group.description }}</p>
         </div>
         <!-- We will build the route for this button next -->
-        <button class="btn btn-success" disabled>+ Add Expense (Coming Soon)</button>
+        <a href="{{ url_for('main.add_group_expense', group_id=group.id) }}" class="btn btn-success">+ Add Expense</a>
     </div>
 
     <div class="row">
@@ -32,8 +32,18 @@
                     {% if debts %}
                         {% for debt in debts %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <span><strong>{{ debt.from_user }}</strong> owes <strong>{{ debt.to_user }}</strong></span>
-                            <span class="badge bg-danger rounded-pill fs-6">₹{{ "%.2f"|format(debt.amount) }}</span>
+                            <div>
+                                <span><strong>{{ debt.from_user }}</strong> owes <strong>{{ debt.to_user }}</strong></span>
+                                <span class="badge bg-danger rounded-pill fs-6 ms-2">₹{{ "%.2f"|format(debt.amount) }}</span>
+                            </div>
+                            
+                            <!-- Settlement Form -->
+                            <form action="{{ url_for('main.settle_debt', group_id=group.id) }}" method="POST" class="m-0">
+                                <input type="hidden" name="payer_id" value="{{ debt.from_user_id }}">
+                                <input type="hidden" name="payee_id" value="{{ debt.to_user_id }}">
+                                <input type="hidden" name="amount" value="{{ debt.amount }}">
+                                <button type="submit" class="btn btn-sm btn-outline-success">Mark Paid</button>
+                            </form>
                         </li>
                         {% endfor %}
                     {% else %}

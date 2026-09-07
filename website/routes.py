@@ -13,6 +13,9 @@ from .extensions import db, mail
 from .models import User, Category, Transaction
 from .ocr_utils import extract_text_from_image, parse_receipt_data
 
+from .models import Group, GroupMember, GroupExpense, ExpenseSplit, Settlement, User
+from .split_utils import calculate_group_balances, simplify_debts
+
 main = Blueprint('main', __name__)
 
 def get_serializer():
@@ -453,3 +456,183 @@ def page_not_found(e):
 def internal_server_error(e):
     return render_template('500.html'), 500
 
+# ==========================================
+# GROUP EXPENSE ENGINE ROUTES
+# ==========================================
+
+@main.route('/groups', methods=['GET'])
+@login_required
+def groups():
+    """Display all groups the current user belongs to."""
+    # Fetch records where the user is a member, then extract the actual groups
+    user_memberships = GroupMember.query.filter_by(user_id=current_user.id).all()
+    user_groups = [membership.group for membership in user_memberships]
+    
+    return render_template('groups.html', groups=user_groups)
+
+@main.route('/groups/create', methods=['POST'])
+@login_required
+def create_group():
+    """Handle the form submission to create a new group."""
+    name = request.form.get('name')
+    description = request.form.get('description', '')
+    
+    if not name:
+        flash('Group name is required.', 'danger')
+        return redirect(url_for('main.groups'))
+        
+    # 1. Create the group
+    new_group = Group(name=name, description=description, created_by_id=current_user.id)
+    db.session.add(new_group)
+    db.session.commit() # Commit now to generate the group.id
+    
+    # 2. Add the creator as the first member (admin)
+    member = GroupMember(group_id=new_group.id, user_id=current_user.id, role='admin')
+    db.session.add(member)
+    db.session.commit()
+    
+    flash(f'Group "{name}" created successfully!', 'success')
+    return redirect(url_for('main.group_detail', group_id=new_group.id))
+
+@main.route('/groups/<int:group_id>', methods=['GET'])
+@login_required
+def group_detail(group_id):
+    """The main dashboard for a specific group (shows expenses and simplified debts)."""
+    # 1. Security Check: Ensure the user is actually in this group
+    membership = GroupMember.query.filter_by(group_id=group_id, user_id=current_user.id).first()
+    if not membership:
+        flash('You do not have access to this group.', 'danger')
+        return redirect(url_for('main.groups'))
+        
+    group = Group.query.get_or_404(group_id)
+    members = GroupMember.query.filter_by(group_id=group_id).all()
+    expenses = GroupExpense.query.filter_by(group_id=group_id).order_by(GroupExpense.date.desc()).all()
+    
+    # 2. Run the Debt Simplification Algorithm
+    splits = ExpenseSplit.query.join(GroupExpense).filter(GroupExpense.group_id == group_id).all()
+    settlements = Settlement.query.filter_by(group_id=group_id).all()
+    
+    balances = calculate_group_balances(expenses, splits, settlements)
+    raw_transactions = simplify_debts(balances)
+    
+    # 3. Map User IDs to Usernames for the frontend UI
+    # Note: Assuming your User model has a 'username' or 'first_name' field. Adjust if needed.
+    user_map = {m.user.id: m.user.username for m in members} 
+    
+    simplified_debts = []
+    for tx in raw_transactions:
+        simplified_debts.append({
+            'from_user': user_map.get(tx['from_user'], 'Unknown'),
+            'from_user_id': tx['from_user'],
+            'to_user': user_map.get(tx['to_user'], 'Unknown'),
+            'to_user_id': tx['to_user'],
+            'amount': tx['amount']
+        })
+        
+    return render_template('group_detail.html', 
+                           group=group, 
+                           members=members, 
+                           expenses=expenses, 
+                           debts=simplified_debts)
+
+@main.route('/groups/<int:group_id>/add_member', methods=['POST'])
+@login_required
+def add_group_member(group_id):
+    """Add a new user to the group via their email."""
+    # Security check
+    if not GroupMember.query.filter_by(group_id=group_id, user_id=current_user.id).first():
+        flash('Permission denied.', 'danger')
+        return redirect(url_for('main.groups'))
+        
+    email = request.form.get('email')
+    user_to_add = User.query.filter_by(email=email).first()
+    
+    if not user_to_add:
+        flash('No user found with that email address. They must register first.', 'warning')
+    elif GroupMember.query.filter_by(group_id=group_id, user_id=user_to_add.id).first():
+        flash('User is already in the group.', 'info')
+    else:
+        new_member = GroupMember(group_id=group_id, user_id=user_to_add.id)
+        db.session.add(new_member)
+        db.session.commit()
+        flash(f'{user_to_add.username} has been added to the group!', 'success')
+        
+    return redirect(url_for('main.group_detail', group_id=group_id))
+
+@main.route('/groups/<int:group_id>/add_expense', methods=['GET', 'POST'])
+@login_required
+def add_group_expense(group_id):
+    """Form to add a new group expense and calculate equal splits."""
+    # Verify the user is in this group
+    if not GroupMember.query.filter_by(group_id=group_id, user_id=current_user.id).first():
+        flash('Permission denied.', 'danger')
+        return redirect(url_for('main.groups'))
+
+    group = Group.query.get_or_404(group_id)
+    members = GroupMember.query.filter_by(group_id=group_id).all()
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        amount = float(request.form.get('amount'))
+        
+        # Get the list of user IDs checked in the form
+        selected_user_ids = request.form.getlist('split_with')
+        
+        if not selected_user_ids:
+            flash('You must select at least one person to split with.', 'danger')
+            return redirect(request.url)
+
+        # 1. Create the parent expense record (assuming the logged-in user paid it)
+        expense = GroupExpense(
+            group_id=group.id,
+            paid_by_id=current_user.id,
+            title=title,
+            amount=amount
+        )
+        db.session.add(expense)
+        db.session.flush() # Generates the expense.id without fully committing yet
+
+        # 2. Calculate the equal split amount
+        split_amount = amount / len(selected_user_ids)
+
+        # 3. Create the individual split records
+        for user_id in selected_user_ids:
+            split = ExpenseSplit(
+                expense_id=expense.id,
+                user_id=int(user_id),
+                owed_amount=split_amount,
+                split_type='equal'
+            )
+            db.session.add(split)
+        
+        db.session.commit()
+        flash('Expense added successfully!', 'success')
+        return redirect(url_for('main.group_detail', group_id=group.id))
+
+    return render_template('add_group_expense.html', group=group, members=members)
+
+@main.route('/groups/<int:group_id>/settle', methods=['POST'])
+@login_required
+def settle_debt(group_id):
+    """Marks a specific debt as paid and creates a settlement record."""
+    # Verify the user is in this group
+    if not GroupMember.query.filter_by(group_id=group_id, user_id=current_user.id).first():
+        flash('Permission denied.', 'danger')
+        return redirect(url_for('main.groups'))
+
+    payer_id = int(request.form.get('payer_id'))
+    payee_id = int(request.form.get('payee_id'))
+    amount = float(request.form.get('amount'))
+
+    # Create the settlement record
+    settlement = Settlement(
+        group_id=group_id,
+        payer_id=payer_id,
+        payee_id=payee_id,
+        amount=amount
+    )
+    db.session.add(settlement)
+    db.session.commit()
+
+    flash('Debt marked as settled!', 'success')
+    return redirect(url_for('main.group_detail', group_id=group_id))
